@@ -1,0 +1,23 @@
+"""Register built-in games (idempotent)."""
+
+_registered = False
+
+
+def ensure_builtins_registered() -> None:
+    """Register all built-in games. Safe to call multiple times."""
+    global _registered
+    if _registered:
+        return
+    from arena.games import register_game
+    from arena.games.ultimatum import UltimatumGame
+    from arena.games.first_price_auction import FirstPriceAuctionGame
+    from arena.games.principal_agent import PrincipalAgentGame
+    from arena.games.bilateral_trade import BilateralTradeGame
+    from arena.games.provision_point import ProvisionPointGame
+
+    register_game(UltimatumGame())
+    register_game(FirstPriceAuctionGame())
+    register_game(PrincipalAgentGame())
+    register_game(BilateralTradeGame())
+    register_game(ProvisionPointGame())
+    _registered = True

@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.env
+
+# Node
+node_modules/
+dashboard/dist/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+logs/
+
+# IDE / AI assistants
+.claude/
+.cursor/
+# .github/ — kept for GitHub Actions
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# mypy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# MkDocs
+site/
+
+.vercel
+.env*.local
