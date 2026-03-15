@@ -35,6 +35,7 @@ def main() -> None:
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--max-turns", type=int, default=10)
     parser.add_argument("--max-messages", type=int, default=10)
+    parser.add_argument("--db", default=None, help="Path to SQLite database file (default: arena_data.db)")
     args = parser.parse_args()
 
     from arena.server import build_arena_app
@@ -61,7 +62,8 @@ def main() -> None:
         else:
             print(f"  Warning: unknown game '{gid}', skipping")
 
-    store = ArenaStore()
+    db_path = args.db or os.environ.get("ARENA_DB_PATH", str(Path(__file__).resolve().parent / "arena_data.db"))
+    store = ArenaStore(db_path=db_path)
 
     app = build_arena_app(
         store=store,
@@ -77,6 +79,7 @@ def main() -> None:
     print(f"  Dashboard:  http://127.0.0.1:{port}")
     print(f"  API:        http://127.0.0.1:{port}/api/")
     print(f"  Games:      {list(games.keys())}")
+    print(f"  Database:   {db_path}")
     print()
 
     if not args.no_browser:

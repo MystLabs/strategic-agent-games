@@ -1,7 +1,13 @@
-"""In-memory store for arena: registered agents, match history, per-game ELO ratings."""
+"""Arena store: registered agents, match history, per-game leaderboard.
+
+Persists matches, leaderboard stats, and claimed names to SQLite.
+Agents and sessions remain ephemeral (in-memory only).
+"""
 
 from __future__ import annotations
 
+import json
+import sqlite3
 import threading
 import time
 from collections import defaultdict
@@ -34,10 +40,42 @@ class MatchRecord:
     game_params: dict[str, Any] | None = None
 
 
-class ArenaStore:
-    """Thread-safe in-memory store for arena state with per-game leaderboard."""
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS matches (
+    match_id          TEXT PRIMARY KEY,
+    game_id           TEXT NOT NULL,
+    agent_ids         TEXT NOT NULL,
+    outcome           TEXT,
+    status            TEXT NOT NULL,
+    num_turns         INTEGER NOT NULL DEFAULT 0,
+    duration_seconds  REAL NOT NULL DEFAULT 0.0,
+    timestamp         REAL NOT NULL,
+    log               TEXT,
+    game_params       TEXT
+);
 
-    def __init__(self) -> None:
+CREATE TABLE IF NOT EXISTS leaderboard_stats (
+    game_id        TEXT NOT NULL,
+    agent_id       TEXT NOT NULL,
+    games_played   INTEGER NOT NULL DEFAULT 0,
+    deals          INTEGER NOT NULL DEFAULT 0,
+    auction_wins   INTEGER NOT NULL DEFAULT 0,
+    total_utility  REAL NOT NULL DEFAULT 0.0,
+    utility_count  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (game_id, agent_id)
+);
+
+CREATE TABLE IF NOT EXISTS claimed_names (
+    name          TEXT PRIMARY KEY,
+    claim_token   TEXT NOT NULL
+);
+"""
+
+
+class ArenaStore:
+    """Thread-safe store for arena state with SQLite persistence."""
+
+    def __init__(self, db_path: str | None = "arena_data.db") -> None:
         self._lock = threading.Lock()
         self._agents: dict[str, RegisteredAgent] = {}
         self._matches: list[MatchRecord] = []
@@ -49,6 +87,74 @@ class ArenaStore:
         self._utility_count: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         # Name claiming: name -> claim_token (first use claims the name)
         self._claimed_names: dict[str, str] = {}
+
+        # SQLite persistence
+        self._db_path = db_path
+        if db_path:
+            self._db: sqlite3.Connection | None = sqlite3.connect(db_path, check_same_thread=False)
+            self._db.execute("PRAGMA journal_mode=WAL")
+            self._init_db()
+            self._load_from_db()
+        else:
+            self._db = None
+
+    def _init_db(self) -> None:
+        """Create tables if they don't exist."""
+        assert self._db is not None
+        self._db.executescript(_SCHEMA)
+        self._db.commit()
+
+    def _load_from_db(self) -> None:
+        """Rebuild in-memory state from SQLite on startup."""
+        assert self._db is not None
+        with self._lock:
+            # Load claimed names
+            for name, token in self._db.execute("SELECT name, claim_token FROM claimed_names"):
+                self._claimed_names[name] = token
+
+            # Load leaderboard stats
+            for row in self._db.execute(
+                "SELECT game_id, agent_id, games_played, deals, auction_wins, total_utility, utility_count "
+                "FROM leaderboard_stats"
+            ):
+                gid, aid, played, deals, wins, total_u, u_count = row
+                self._games_played[gid][aid] = played
+                self._deals[gid][aid] = deals
+                self._auction_wins[gid][aid] = wins
+                self._total_utility[gid][aid] = total_u
+                self._utility_count[gid][aid] = u_count
+
+            # Load match history
+            for row in self._db.execute(
+                "SELECT match_id, game_id, agent_ids, outcome, status, num_turns, "
+                "duration_seconds, timestamp, log, game_params "
+                "FROM matches ORDER BY timestamp"
+            ):
+                mid, gid, agent_ids_json, outcome_json, status, turns, dur, ts, log_json, params_json = row
+                self._matches.append(MatchRecord(
+                    match_id=mid,
+                    game_id=gid,
+                    agent_ids=json.loads(agent_ids_json),
+                    outcome=json.loads(outcome_json) if outcome_json else None,
+                    status=status,
+                    num_turns=turns,
+                    duration_seconds=dur,
+                    timestamp=ts,
+                    log=json.loads(log_json) if log_json else None,
+                    game_params=json.loads(params_json) if params_json else None,
+                ))
+
+            loaded_matches = len(self._matches)
+            loaded_names = len(self._claimed_names)
+            stats_count = sum(len(v) for v in self._games_played.values())
+
+        if loaded_matches or loaded_names or stats_count:
+            print(f"  DB loaded: {loaded_matches} matches, {stats_count} agent stats, {loaded_names} claimed names")
+
+    def close(self) -> None:
+        if self._db:
+            self._db.close()
+            self._db = None
 
     @property
     def lock(self) -> threading.Lock:
@@ -68,6 +174,12 @@ class ArenaStore:
                 import secrets as _sec
                 token = claim_token or f"ct_{_sec.token_urlsafe(16)}"
                 self._claimed_names[name] = token
+                if self._db:
+                    self._db.execute(
+                        "INSERT OR REPLACE INTO claimed_names (name, claim_token) VALUES (?, ?)",
+                        (name, token),
+                    )
+                    self._db.commit()
                 return True, token
             if claim_token and claim_token == existing:
                 return True, existing
@@ -120,6 +232,41 @@ class ArenaStore:
         with self._lock:
             self._matches.append(record)
             self._update_stats(game_id, agent_ids, outcome)
+            self._persist_match(record, game_id, agent_ids)
+
+    def _persist_match(self, record: MatchRecord, game_id: str, agent_ids: list[str]) -> None:
+        """Write match and updated stats to SQLite. Must be called with lock held."""
+        if not self._db:
+            return
+        self._db.execute(
+            "INSERT OR IGNORE INTO matches "
+            "(match_id, game_id, agent_ids, outcome, status, num_turns, duration_seconds, timestamp, log, game_params) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                record.match_id, record.game_id, json.dumps(record.agent_ids),
+                json.dumps(record.outcome) if record.outcome else None,
+                record.status, record.num_turns, record.duration_seconds, record.timestamp,
+                json.dumps(record.log) if record.log else None,
+                json.dumps(record.game_params) if record.game_params else None,
+            ),
+        )
+        for aid in agent_ids:
+            self._db.execute(
+                "INSERT INTO leaderboard_stats (game_id, agent_id, games_played, deals, auction_wins, total_utility, utility_count) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(game_id, agent_id) DO UPDATE SET "
+                "games_played=excluded.games_played, deals=excluded.deals, auction_wins=excluded.auction_wins, "
+                "total_utility=excluded.total_utility, utility_count=excluded.utility_count",
+                (
+                    game_id, aid,
+                    self._games_played[game_id][aid],
+                    self._deals[game_id][aid],
+                    self._auction_wins[game_id][aid],
+                    self._total_utility[game_id][aid],
+                    self._utility_count[game_id][aid],
+                ),
+            )
+        self._db.commit()
 
     def _update_stats(self, game_id: str, agent_ids: list[str], outcome: dict[str, Any] | None) -> None:
         """Update per-game stats. Must be called with lock held."""
