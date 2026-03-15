@@ -65,6 +65,12 @@ def main() -> None:
     db_path = args.db or os.environ.get("ARENA_DB_PATH", str(Path(__file__).resolve().parent / "arena_data.db"))
     store = ArenaStore(db_path=db_path)
 
+    # Auto-seed if DB is empty
+    if not store.get_match_history(limit=1):
+        print("  Database is empty — seeding with sample matches...")
+        from seed_matches import seed
+        seed(db_path)
+
     app = build_arena_app(
         store=store,
         games=games,
