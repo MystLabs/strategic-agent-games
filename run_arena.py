@@ -70,6 +70,9 @@ def main() -> None:
         print("  Database is empty — seeding with sample matches...")
         from seed_matches import seed
         seed(db_path)
+        # Reload store so in-memory state reflects seeded data
+        store.close()
+        store = ArenaStore(db_path=db_path)
 
     app = build_arena_app(
         store=store,
