@@ -19,9 +19,9 @@ export default function Card({ children, className = '', glow }: CardProps) {
 }
 
 export function CardHeader({ children, className = '', onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
-  return <div className={`px-5 py-4 border-b border-border ${className}`} onClick={onClick}>{children}</div>;
+  return <div className={`px-3 sm:px-5 py-3 sm:py-4 border-b border-border ${className}`} onClick={onClick}>{children}</div>;
 }
 
 export function CardBody({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`px-5 py-4 ${className}`}>{children}</div>;
+  return <div className={`px-3 sm:px-5 py-3 sm:py-4 ${className}`}>{children}</div>;
 }

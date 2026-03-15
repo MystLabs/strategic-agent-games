@@ -33,7 +33,7 @@ export default function EventRow({ event }: { event: MatchEvent }) {
             {data.action_type as string}
           </span>
           {data.payload && Object.keys(data.payload as object).length > 0 ? (
-            <span className="text-[11px] text-text-muted ml-2 font-mono">
+            <span className="text-[11px] text-text-muted ml-2 font-mono break-all">
               {JSON.stringify(data.payload)}
             </span>
           ) : null}

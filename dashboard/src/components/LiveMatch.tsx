@@ -63,17 +63,17 @@ export default function LiveMatch({ sessionId, gameId, agentIds, defaultCollapse
         className="flex items-center justify-between flex-wrap gap-2 cursor-pointer select-none"
         onClick={() => setCollapsed((c) => !c)}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
           <ChevronDown
-            className={`w-4 h-4 text-text-muted transition-transform ${collapsed ? '-rotate-90' : ''}`}
+            className={`w-4 h-4 text-text-muted transition-transform flex-shrink-0 ${collapsed ? '-rotate-90' : ''}`}
           />
           {gameId && (
-            <span className="text-xs font-mono bg-accent/20 text-accent-light px-2 py-0.5 rounded">
+            <span className="text-xs font-mono bg-accent/20 text-accent-light px-2 py-0.5 rounded flex-shrink-0">
               {gameId}
             </span>
           )}
           {agentIds && (
-            <span className="text-xs text-text-muted">
+            <span className="text-xs text-text-muted truncate max-w-[120px] sm:max-w-none">
               {agentIds.join(' vs ')}
             </span>
           )}
@@ -93,11 +93,11 @@ export default function LiveMatch({ sessionId, gameId, agentIds, defaultCollapse
             </span>
           )}
         </div>
-        <span className="text-xs text-text-muted font-mono">{sessionId}</span>
+        <span className="text-xs text-text-muted font-mono truncate max-w-[100px] sm:max-w-none" title={sessionId}>{sessionId}</span>
       </CardHeader>
       {!collapsed && (
         <CardBody className="p-0">
-          <div ref={scrollRef} className="max-h-[500px] overflow-y-auto p-4 space-y-2">
+          <div ref={scrollRef} className="max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 space-y-2">
             {events.length === 0 && isRunning && (
               <div className="flex items-center justify-center gap-2 py-8 text-text-muted text-sm">
                 <Loader2 className="w-4 h-4 animate-spin" />

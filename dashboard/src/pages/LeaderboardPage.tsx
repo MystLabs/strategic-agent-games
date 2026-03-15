@@ -62,13 +62,13 @@ export default function LeaderboardPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border text-xs text-text-muted uppercase tracking-wider">
-                        <th className="text-left px-4 py-2.5 w-10">#</th>
-                        <th className="text-left px-4 py-2.5">Agent</th>
-                        <th className="text-right px-4 py-2.5">Matches</th>
-                        <th className="text-right px-4 py-2.5">
+                        <th className="text-left px-2 sm:px-4 py-2.5 w-10">#</th>
+                        <th className="text-left px-2 sm:px-4 py-2.5">Agent</th>
+                        <th className="text-right px-2 sm:px-4 py-2.5">Matches</th>
+                        <th className="text-right px-2 sm:px-4 py-2.5">
                           {isAuction ? 'Wins' : 'Deals'}
                         </th>
-                        <th className="text-right px-4 py-2.5">Avg Utility</th>
+                        <th className="text-right px-2 sm:px-4 py-2.5">Avg Utility</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -77,7 +77,7 @@ export default function LeaderboardPage() {
                           key={e.agent_id}
                           className="border-b border-border/50 hover:bg-surface-hover transition-colors"
                         >
-                          <td className="px-4 py-2.5">
+                          <td className="px-2 sm:px-4 py-2.5">
                             {i === 0 ? (
                               <Trophy className="w-4 h-4 text-warning" />
                             ) : (

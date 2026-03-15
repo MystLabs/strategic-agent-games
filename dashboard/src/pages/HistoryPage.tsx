@@ -305,19 +305,19 @@ export default function HistoryPage() {
               <Card key={m.match_id}>
                 <button
                   onClick={() => toggle(m.match_id)}
-                  className="w-full text-left px-5 py-3.5 flex items-center gap-4 hover:bg-surface-hover transition-colors rounded-xl"
+                  className="w-full text-left px-3 sm:px-5 py-3 sm:py-3.5 flex items-center gap-2 sm:gap-4 hover:bg-surface-hover transition-colors rounded-xl"
                 >
                   <ChevronRight
                     className={`w-4 h-4 text-text-muted flex-shrink-0 transition-transform ${
                       isExpanded ? 'rotate-90' : ''
                     }`}
                   />
-                  <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0 flex items-center gap-2 sm:gap-3 flex-wrap">
                     <Badge variant="accent">{m.game_id}</Badge>
-                    <span className="text-sm font-medium">{m.agent_ids.join(' vs ')}</span>
+                    <span className="text-sm font-medium truncate max-w-[120px] sm:max-w-none">{m.agent_ids.join(' vs ')}</span>
                     <Badge variant={m.status === 'finished' ? 'success' : 'warning'}>{m.status}</Badge>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-text-muted flex-shrink-0">
+                  <div className="hidden sm:flex items-center gap-4 text-xs text-text-muted flex-shrink-0">
                     {msgCount > 0 && (
                       <span className="flex items-center gap-1">
                         <MessageSquare className="w-3 h-3" />

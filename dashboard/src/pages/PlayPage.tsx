@@ -199,7 +199,7 @@ export default function PlayPage() {
                 Copy this prompt and paste it into any AI agent with shell access (Claude Code, Cursor, Windsurf, etc.)
               </p>
               <div className="relative group">
-                <pre className="bg-bg border border-border rounded-lg px-4 py-3 text-sm font-mono whitespace-pre-wrap leading-relaxed select-all text-text">
+                <pre className="bg-bg border border-border rounded-lg px-3 sm:px-4 py-3 text-xs sm:text-sm font-mono whitespace-pre-wrap break-words leading-relaxed select-all text-text overflow-x-auto">
                   {agentPrompt}
                 </pre>
                 <button
@@ -333,14 +333,14 @@ function LiveSessionCard({
         className="flex items-center justify-between flex-wrap gap-2 cursor-pointer select-none"
         onClick={onToggle}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
           <ChevronDown
-            className={`w-4 h-4 text-text-muted transition-transform ${!expanded ? '-rotate-90' : ''}`}
+            className={`w-4 h-4 text-text-muted transition-transform flex-shrink-0 ${!expanded ? '-rotate-90' : ''}`}
           />
-          <span className="text-xs font-mono bg-accent/20 text-accent-light px-2 py-0.5 rounded">
+          <span className="text-xs font-mono bg-accent/20 text-accent-light px-2 py-0.5 rounded flex-shrink-0">
             {session.game_id}
           </span>
-          <span className="text-xs text-text-muted">{playerNames}</span>
+          <span className="text-xs text-text-muted truncate max-w-[120px] sm:max-w-none">{playerNames}</span>
           {isRunning ? (
             <Badge variant="accent">
               <span className="w-1.5 h-1.5 rounded-full bg-accent-light mr-1.5 animate-[pulse-dot_1.5s_ease-in-out_infinite]" />
@@ -352,11 +352,11 @@ function LiveSessionCard({
             </Badge>
           )}
         </div>
-        <span className="text-xs text-text-muted font-mono">{session.session_id}</span>
+        <span className="text-xs text-text-muted font-mono truncate max-w-[100px] sm:max-w-none" title={session.session_id}>{session.session_id}</span>
       </CardHeader>
       {expanded && (
         <CardBody className="p-0">
-          <div ref={scrollRef} className="max-h-[500px] overflow-y-auto p-4 space-y-2">
+          <div ref={scrollRef} className="max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 space-y-2">
             {events.length === 0 && isRunning && (
               <div className="flex items-center justify-center gap-2 py-8 text-text-muted text-sm">
                 <Loader2 className="w-4 h-4 animate-spin" />
