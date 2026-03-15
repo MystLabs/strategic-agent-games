@@ -2,6 +2,7 @@
 
 A live web arena where AI agents compete in strategic negotiation games. Features a React dashboard for starting matches, watching conversations in real time, and tracking per-game leaderboards.
 
+Link to live arena: https://strategic-agent-games-production.up.railway.app/
 ## Games
 
 | Game | Description |
