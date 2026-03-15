@@ -3,6 +3,7 @@ import { api, type SessionListItem, type MatchEvent } from '../api/client';
 import Card, { CardBody, CardHeader } from '../components/Card';
 import Badge from '../components/Badge';
 import EventRow from '../components/EventRow';
+import { useToast } from '../components/Toast';
 import {
   Copy,
   Check,
@@ -16,17 +17,20 @@ import {
 
 export default function PlayPage() {
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [selectedGame, setSelectedGame] = useState<string>('');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [promptCollapsed, setPromptCollapsed] = useState(true);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchSessions = useCallback(async () => {
     try {
       const res = await api.sessionList();
       setSessions(res.sessions);
     } catch {
-      /* ignore */
+      toast('Failed to load sessions');
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchSessions();
@@ -34,9 +38,10 @@ export default function PlayPage() {
     return () => clearInterval(timer);
   }, [fetchSessions]);
 
-  const waiting = sessions.filter((s) => s.status === 'waiting');
-  const running = sessions.filter((s) => s.status === 'running');
-  const finished = sessions
+  const filtered = selectedGame ? sessions.filter((s) => s.game_id === selectedGame) : sessions;
+  const waiting = filtered.filter((s) => s.status === 'waiting');
+  const running = filtered.filter((s) => s.status === 'running');
+  const finished = filtered
     .filter((s) => s.status === 'finished')
     .sort((a, b) => b.created_at - a.created_at)
     .slice(0, 10);
@@ -50,39 +55,42 @@ export default function PlayPage() {
     setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
+  const gameIds = [...new Set(sessions.map((s) => s.game_id))];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Arena</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight">Arena</h1>
+      </div>
 
-      {/* Agent prompt box */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-accent" />
-            <span className="font-semibold text-sm">Let an AI Agent Play</span>
-          </div>
-        </CardHeader>
-        <CardBody className="space-y-3">
-          <p className="text-sm text-text-muted">
-            Copy this prompt and paste it into any AI agent with shell access (Claude Code, Cursor, Windsurf, etc.)
-          </p>
-          <div className="relative group">
-            <pre className="bg-bg border border-border rounded-lg px-4 py-3 text-sm font-mono whitespace-pre-wrap leading-relaxed select-all text-text">
-              {agentPrompt}
-            </pre>
+      {/* Game filter chips */}
+      {gameIds.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setSelectedGame('')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              selectedGame === ''
+                ? 'bg-accent/20 text-accent-light border border-accent/40'
+                : 'bg-surface border border-border text-text-muted hover:text-text hover:border-border-light'
+            }`}
+          >
+            All games
+          </button>
+          {gameIds.map((gid) => (
             <button
-              onClick={copyPrompt}
-              className="absolute top-2.5 right-2.5 p-1.5 rounded-md border border-border bg-surface hover:border-accent hover:text-accent transition-colors opacity-0 group-hover:opacity-100"
-              title="Copy prompt"
+              key={gid}
+              onClick={() => setSelectedGame(gid === selectedGame ? '' : gid)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium font-mono transition-colors ${
+                selectedGame === gid
+                  ? 'bg-accent/20 text-accent-light border border-accent/40'
+                  : 'bg-surface border border-border text-text-muted hover:text-text hover:border-border-light'
+              }`}
             >
-              {copiedPrompt ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+              {gid}
             </button>
-          </div>
-          <p className="text-xs text-text-muted">
-            The agent will fetch <code className="bg-bg px-1.5 py-0.5 rounded text-accent-light">{arenaUrl}/SKILL.md</code>, learn the rules, find or create a session, and start playing.
-          </p>
-        </CardBody>
-      </Card>
+          ))}
+        </div>
+      )}
 
       {/* Live games */}
       <section>
@@ -100,7 +108,7 @@ export default function PlayPage() {
           <Card>
             <CardBody>
               <p className="text-sm text-text-muted text-center py-6">
-                No games in progress. Send the prompt above to two AI agents to start a match.
+                No games in progress. Use the agent prompt below to start a match.
               </p>
             </CardBody>
           </Card>
@@ -169,6 +177,46 @@ export default function PlayPage() {
           </div>
         </section>
       )}
+
+      {/* Agent prompt — collapsible at bottom */}
+      <section>
+        <Card>
+          <CardHeader
+            className="flex items-center justify-between cursor-pointer select-none"
+            onClick={() => setPromptCollapsed(!promptCollapsed)}
+          >
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-accent" />
+              <span className="font-semibold text-sm">Let an AI Agent Play</span>
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 text-text-muted transition-transform ${promptCollapsed ? '-rotate-90' : ''}`}
+            />
+          </CardHeader>
+          {!promptCollapsed && (
+            <CardBody className="space-y-3">
+              <p className="text-sm text-text-muted">
+                Copy this prompt and paste it into any AI agent with shell access (Claude Code, Cursor, Windsurf, etc.)
+              </p>
+              <div className="relative group">
+                <pre className="bg-bg border border-border rounded-lg px-4 py-3 text-sm font-mono whitespace-pre-wrap leading-relaxed select-all text-text">
+                  {agentPrompt}
+                </pre>
+                <button
+                  onClick={copyPrompt}
+                  className="absolute top-2.5 right-2.5 p-1.5 rounded-md border border-border bg-surface hover:border-accent hover:text-accent transition-colors opacity-0 group-hover:opacity-100"
+                  title="Copy prompt"
+                >
+                  {copiedPrompt ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <p className="text-xs text-text-muted">
+                The agent will fetch <code className="bg-bg px-1.5 py-0.5 rounded text-accent-light">{arenaUrl}/SKILL.md</code>, learn the rules, find or create a session, and start playing.
+              </p>
+            </CardBody>
+          )}
+        </Card>
+      </section>
     </div>
   );
 }
@@ -241,6 +289,7 @@ function LiveSessionCard({
   const [status, setStatus] = useState(session.status);
   const sinceRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const isRunning = status === 'running';
 
@@ -258,7 +307,7 @@ function LiveSessionCard({
           sinceRef.current = data.events_total;
         }
       } catch {
-        /* ignore */
+        toast('Failed to load session events');
       }
     };
 
@@ -268,7 +317,7 @@ function LiveSessionCard({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [expanded, session.session_id]);
+  }, [expanded, session.session_id, toast]);
 
   useEffect(() => {
     if (expanded) {

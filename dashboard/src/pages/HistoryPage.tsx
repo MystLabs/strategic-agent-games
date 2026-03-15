@@ -22,12 +22,16 @@ export default function HistoryPage() {
   const [filterSearch, setFilterSearch] = useState('');
 
   const refresh = useCallback(async () => {
-    const [dash, hist] = await Promise.all([
-      api.dashboard(),
-      api.history(undefined, 200),
-    ]);
-    setGames(dash.games);
-    setMatches(hist.matches);
+    try {
+      const [dash, hist] = await Promise.all([
+        api.dashboard(),
+        api.history(undefined, 200),
+      ]);
+      setGames(dash.games);
+      setMatches(hist.matches);
+    } catch {
+      // handled silently — data just won't update
+    }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);

@@ -31,6 +31,7 @@ class SessionPlayer:
 class ChatMessage:
     sender_id: str
     content: str
+    sender_display_name: str = ""
     timestamp: float = field(default_factory=time.time)
     scope: str = "public"
     to_player_ids: list[str] = field(default_factory=list)
@@ -214,9 +215,16 @@ class SessionManager:
             session = self._sessions.get(session_id)
             if session is None:
                 return False
+            # Resolve sender display name
+            sender_display_name = sender_id
+            for p in session.players:
+                if p.player_id == sender_id:
+                    sender_display_name = p.display_name or sender_id
+                    break
             msg = ChatMessage(
                 sender_id=sender_id,
                 content=content,
+                sender_display_name=sender_display_name,
                 scope=scope,
                 to_player_ids=to_player_ids or [],
             )
@@ -243,6 +251,7 @@ class SessionManager:
                 messages.append({
                     "index": i,
                     "sender_id": msg.sender_id,
+                    "sender_display_name": msg.sender_display_name or msg.sender_id,
                     "content": msg.content,
                     "scope": msg.scope,
                     "to_player_ids": msg.to_player_ids,

@@ -2,21 +2,27 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, type AgentInfo } from '../api/client';
 import Card, { CardBody, CardHeader } from '../components/Card';
 import Badge from '../components/Badge';
+import { useToast } from '../components/Toast';
 import { Plus, Trash2, Globe, X } from 'lucide-react';
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const { toast } = useToast();
 
   const refresh = useCallback(() => {
-    api.agents().then((a) => setAgents(a.agents));
-  }, []);
+    api.agents().then((a) => setAgents(a.agents)).catch(() => toast('Failed to load agents'));
+  }, [toast]);
 
   useEffect(refresh, [refresh]);
 
   const handleRemove = async (id: string) => {
-    await api.unregister(id);
-    refresh();
+    try {
+      await api.unregister(id);
+      refresh();
+    } catch {
+      toast('Failed to remove agent');
+    }
   };
 
   return (
